@@ -7,7 +7,8 @@
   },
   "[markdown]": {
     "editor.wordWrap": "wordWrapColumn",
-    "editor.wordWrapColumn": 56
+    "editor.wordWrapColumn": 56,
+    "editor.lineHeight": 1.8
   },
   "explorer.sortOrder": "mixed",
 }
