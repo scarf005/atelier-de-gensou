@@ -1,6 +1,10 @@
 {
-  "fmt": {
-    "semiColons": false,
-    "proseWrap": "preserve"
-  }
+    "fmt": {
+        "lineWidth": 100,
+        "semiColons": false,
+        "proseWrap": "preserve"
+    },
+    "imports": {
+        "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.7"
+    }
 }
