@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eye Canvas Cover</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "preact": "https://esm.sh/preact@10.26.9",
+          "preact/": "https://esm.sh/preact@10.26.9/",
+          "@preact/signals": "https://esm.sh/@preact/signals@2.2.1?external=preact"
+        }
+      }
+    </script>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: #222;
+        color: #eee;
+        font-family: sans-serif;
+      }
+
+      #app {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+
+      main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        width: 100vw;
+      }
+
+      .controls {
+        margin-top: 1em;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2em;
+        width: 100%;
+        max-width: 600px;
+        justify-content: center;
+        align-items: flex-end;
+      }
+
+      label {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.95em;
+        color: #ccc;
+        min-width: 120px;
+        flex: 1 1 120px;
+        margin-bottom: 0.2em;
+      }
+
+      label input[type="range"] {
+        width: 100%;
+        margin-top: 0.3em;
+      }
+
+      canvas {
+        background: #4f4f4f;
+        box-shadow: 0 2px 16px #000a;
+        margin-top: 1em;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      // convention: no semicolon, double quotes, use arrow function, do not use hooks over preact signals, prefer template literal over +
+      import "preact/debug"
+      import { h, render } from "preact"
+      import { useEffect, useRef } from "preact/hooks"
+      import { computed, effect, signal } from "@preact/signals"
+
+      const A6_WIDTH_MM = 105
+      const A6_HEIGHT_MM = 148
+      const MM_TO_PX = 3.7795275591
+      const CANVAS_W = Math.round(A6_WIDTH_MM * MM_TO_PX)
+      const CANVAS_H = Math.round(A6_HEIGHT_MM * MM_TO_PX)
+      const EYE_IMG_SRC =
+        "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAEnpUWHRUaXRsZQAACJlLrUwFAAKJAUQ8R6q1AAADu0lEQVR42u2cMWsUQRiGdy5X2Gg0IsTeFIlgqYISrkrQQuyM9rlDDCpaaStopaggAQPGaGWnFgZTqZW2gvkLBsRotI5j5ryJ6zq7M7P7zezM3ftAyMFultt99p1vZnY2SQIAAAAAAAAAAAAAAAAAAAAAGFxYLF90/tZNrtvnbKeTu214z0j3XBljEOJKgKkMFbtH9jIIIRTx/P4D42M++/SxcLtMj/ICeU4U62cRZSRl5QycEN8iTJNTV81hoYtwJcNUykAIqTMVodcYciGc82Th5HT3c3t5JchUUEqhFtKkPjEpo0oX1rcMwZmDhwqlbHxb57q0UNBwdWCZjhhkpKXokGKiqSEPT0xtt16bk60kFhllmy/qJstVQngSMbqkuExJ05UMX+nY+Fx8Tw3v/+XkwgkpLuoJaUK2mqtSd46tDCFB/pjuG0s9adYpwkUidH9HnZjv61855URlw4UMm+bKJh1lZVAfQyUlCCExJMMXQgqFmGYMMnT82LmZu23XzyGl3GzT1ZqbS8bGDvwd4F66rB0sZvlw9UrlJqxRpwzT5qooHUUyTLZLGRQcuX1nW4o3IToZtt1dV8nQ7ZeVLNIxum+0+0Mh5cX4OPeWkBgpkidlUCGk7Dh6uJSU/2qImK3NkpowJKsbVZsr03TUTU8KO7W6qtyenXqxSQjvt9RI2el0rH1ZI02J7bVrDKoMyey9u86OnZbycmICNSQwuImU2oScvnjBaD9Xk4Pp8UaW90+ekqeklxSum/8yFcJivz1VA8Qson5QylDx9thxNyP1EC6waU8rT4ZM341zM06/qxybCLZ6W0w0XXm9LqOEzL56He1dHwJShmi2ZB3Jqyc2NcSo2Rp698ZrHSmSIrbVKU2IkDKmHj1m8hrmpcOqyRIpUa0oiTUprjsLUsT04tKfG3lxKT0a/Pd31WIt5rPayytMfs5ud/X4lmoK3lSGzUxvoQwLSp2hlJH9XKbZ8o33ZFhC0ssqSgv1xaySEpcypIgqMpyML3rrsqxXnrh+lGsrw/bBVFURTschMjHzky1ed1J8pIJChLOEiOn79JSyjwXW1CtKTNLhQoYXIbZi6l5OqpPhSkSlXpaJFFFLUut8k/PXrgc/H1YkIz3IEzLEOaoe5gWXEB0mSQnt3RBVKqSM4F/YiU2MrYxsKvpGiKkY3y97+qoVwQrxkRjTMYUqDQP7nnqZHtlMp604IbtTCvU/OgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAkvwGx4N7sSJH3GwAAAABJRU5ErkJggg=="
+
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v))
+
+      const img = signal(null)
+      const freq = signal(1)
+      const angle = signal(0)
+      const bg = signal(34)
+      const randAngle = signal(0)
+      const scale = signal(1)
+      const cols = computed(() => Math.max(1, Math.round(freq.value * 3)))
+      const rows = computed(() => Math.max(1, Math.round(freq.value * 4)))
+
+      /**
+       * 범용 Range+Number 입력 컨트롤
+       * @param {object} props
+       * @param {string} props.label
+       * @param {import("@preact/signals").Signal<number>} props.signal
+       * @param {number} props.min
+       * @param {number} props.max
+       * @param {number} props.step
+       * @returns {import("preact").VNode}
+       */
+      const RangeInput = ({ label, signal, min, max, step }) =>
+        h("label", {}, [
+          label,
+          h("input", {
+            type: "range",
+            min,
+            max,
+            step,
+            value: signal.value,
+            onInput: (e) => signal.value = parseFloat(e.target.value),
+            style: { marginBottom: "0.2em" },
+          }),
+          h("input", {
+            type: "number",
+            min,
+            max,
+            step,
+            value: signal.value,
+            onInput: (e) => signal.value = parseFloat(e.target.value),
+            style: { width: "4em" },
+          }),
+        ])
+
+      // 모듈 레벨에서 drawCanvas 함수 정의
+      const drawCanvas = (canvasElement) => {
+        console.log('draw!')
+        if (!img.value || !canvasElement) return
+
+        const s = scale.value
+        const f = freq.value
+        const a = angle.value
+        const b = bg.value
+        const r = randAngle.value
+        const c = cols.value
+        const rw = rows.value
+        const im = img.value
+
+        const ctx = canvasElement.getContext("2d")
+        const pixelW = CANVAS_W * s
+        const pixelH = CANVAS_H * s
+        
+        // 캔버스 크기 설정 (이때 캔버스가 자동으로 클리어됨)
+        canvasElement.width = pixelW
+        canvasElement.height = pixelH
+        
+        const w = pixelW / c
+        const h = pixelH / rw
+        Array.from({ length: rw }).forEach((_, y) =>
+          Array.from({ length: c }).forEach((_, x) => {
+            ctx.save()
+            ctx.translate(x * w + w / 2, y * h + h / 2)
+            // 무작위 각도 오프셋
+            let randomOffset = 0
+            if (r > 0) {
+              const seed = x * 10007 + y * 10009
+              const rand = Math.sin(seed) * 10000
+              randomOffset = (rand - Math.floor(rand)) * 2 * r - r
+            }
+            const totalRad = (a + randomOffset) * Math.PI / 180
+            ctx.rotate(totalRad)
+            // 셀 내에서 이미지 비율 유지하며 contain 방식으로 그리기
+            const imgAspect = im.width / im.height
+            const cellAspect = w / h
+            let drawW = w, drawH = h
+            if (imgAspect > cellAspect) {
+              drawW = w
+              drawH = w / imgAspect
+            } else {
+              drawH = h
+              drawW = h * imgAspect
+            }
+            ctx.drawImage(
+              im,
+              -drawW / 2,
+              -drawH / 2,
+              drawW,
+              drawH,
+            )
+            ctx.restore()
+          })
+        )
+      }
+
+      const CoverCanvas = () => {
+        const canvasRef = useRef(null)
+
+        useEffect(() => {
+          const image = new window.Image()
+          image.src = `data:image/png;base64,${EYE_IMG_SRC}`
+          image.onload = () => {
+            img.value = image
+          }
+        }, [])
+
+        effect(() => {
+          // 모든 signal을 참조하여 변화 감지
+          if (canvasRef.current) {
+            scale.value, freq.value, angle.value, bg.value, randAngle.value, cols.value, rows.value, img.value
+            drawCanvas(canvasRef.current)
+          }
+        })
+
+        return (h("main", {}, [
+          h("canvas", {
+            ref: canvasRef,
+            style: {
+              width: `${CANVAS_W * scale.value}px`,
+              height: `${CANVAS_H * scale.value}px`,
+              filter: "grayscale(1)",
+              background: `rgb(${bg.value},${bg.value},${bg.value})`,
+            },
+          }),
+          h("div", { class: "controls" }, [
+            h(RangeInput, {
+              label: "캔버스 배율",
+              signal: scale,
+              min: 0.1,
+              max: 3,
+              step: 0.01,
+            }),
+            h(RangeInput, { label: "배경 밝기", signal: bg, min: 0, max: 255, step: 1 }),
+            h(RangeInput, { label: "빈도", signal: freq, min: 0.5, max: 10, step: 0.01 }),
+            h(RangeInput, {
+              label: "회전각도",
+              signal: angle,
+              min: -180,
+              max: 180,
+              step: 1,
+            }),
+            h(RangeInput, {
+              label: "무작위 각도",
+              signal: randAngle,
+              min: 0,
+              max: 1000,
+              step: 1,
+            }),
+          ]),
+        ]))
+      }
+
+      render(h(CoverCanvas), document.getElementById("app"))
+    </script>
+  </body>
+</html>
