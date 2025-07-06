@@ -7,8 +7,11 @@
   },
   "[markdown]": {
     "editor.wordWrap": "wordWrapColumn",
-    "editor.wordWrapColumn": 56,
+    "editor.wordWrapColumn": 50,
     "editor.lineHeight": 1.8
+  },
+  "[html]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
   },
   "explorer.sortOrder": "mixed",
 }
